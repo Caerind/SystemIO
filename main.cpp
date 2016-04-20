@@ -1,5 +1,4 @@
 #include <SFML/Graphics.hpp>
-
 #include "SystemIO.hpp"
 
 int main()
@@ -10,11 +9,11 @@ int main()
 
     // Create your input
     system.createInput("i1", "type=io::MouseButtonPressed&mouseButton=1");
-	system.createInput("i2", "type=io::KeyPressed&key=A");
-	system.createInput("i3", "type=IA-Event");
-	system.createInput("i4", "type=Packet&id=PlayerConnected");
+    system.createInput("i2", "type=io::KeyPressed&key=A");
+    system.createInput("i3", "type=IA-Event");
+    system.createInput("i4", "type=Packet&id=PlayerConnected");
 
-	// Create your output
+    // Create your output
     system.createOutput("o", [](SystemIO::Data const& data)
     {
         for (auto itr = data.begin(); itr != data.end(); itr++)
@@ -36,19 +35,19 @@ int main()
     bool toggle = false;
 
     // Event that emit another event (and change variable)
-	system.createInput("t1", "type=io::KeyPressed&key=P");
-	system.createOutput("o1", [&system,&toggle](SystemIO::Data const& data) { system.handleEvent("type=Packet&id=PlayerConnected"); toggle = !toggle; });
+    system.createInput("t1", "type=io::KeyPressed&key=P");
+    system.createOutput("o1", [&system,&toggle](SystemIO::Data const& data) { system.handleEvent("type=Packet&id=PlayerConnected"); toggle = !toggle; });
     system.connect("t1","o1");
 
-	// Reference access to boolean for Realtime events
-	system.createInput("t2", toggle);
-	system.createOutput("o2", [](SystemIO::Data const& data) { std::cout << "ON" << std::endl; });
-	system.connect("t2","o2");
+    // Reference access to boolean for Realtime events
+    system.createInput("t2", toggle);
+    system.createOutput("o2", [](SystemIO::Data const& data) { std::cout << "ON" << std::endl; });
+    system.connect("t2","o2");
 
-	// Reference access to function returning boolean for Realtime events
-	system.createInput("t3", []()->bool{ return sf::Keyboard::isKeyPressed(sf::Keyboard::Z); });
-	system.createOutput("o3", [](SystemIO::Data const& data) { std::cout << "Move" << std::endl; });
-	system.connect("t3","o3");
+    // Reference access to function returning boolean for Realtime events
+    system.createInput("t3", []()->bool{ return sf::Keyboard::isKeyPressed(sf::Keyboard::Z); });
+    system.createOutput("o3", [](SystemIO::Data const& data) { std::cout << "Move" << std::endl; });
+    system.connect("t3","o3");
 
 
 

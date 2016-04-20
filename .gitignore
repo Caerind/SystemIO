@@ -1,0 +1,10 @@
+bin/*
+obj/*
+bin*
+obj*
+*.layout
+*.cbp
+*.depend
+*~
+*.workspace
+temp/

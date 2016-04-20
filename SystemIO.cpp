@@ -11,9 +11,9 @@ std::string SystemIO::keyToString(sf::Keyboard::Key const& key)
     {
         #define CASE1(identifier) case sf::Keyboard::identifier: return #identifier; break;
         CASE1(Unknown);
-		CASE1(A);
-		CASE1(B);
-		CASE1(C);
+        CASE1(A);
+        CASE1(B);
+        CASE1(C);
 		CASE1(D);
 		CASE1(E);
 		CASE1(F);

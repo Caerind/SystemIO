@@ -224,127 +224,6 @@ sf::Keyboard::Key SystemIO::stringToKey(std::string const& str)
     return sf::Keyboard::KeyCount;
 }
 
-SystemIO::SystemIO() : mWindow(nullptr)
-{
-}
-
-void SystemIO::update(sf::Time dt)
-{
-    if (mWindow != nullptr)
-    {
-        sf::Event event;
-        while (mWindow->pollEvent(event))
-        {
-            handleEvent(event);
-        }
-    }
-
-    // For each input
-    for (std::size_t i = 0; i < mInputs.size(); i++)
-    {
-        // For each filter
-        for (auto filter = mFilters.begin(); filter != mFilters.end(); filter++)
-        {
-            // If an input pass filter
-            if (passFilter(filter->second,mInputs[i]))
-            {
-                dataToConnected(filter->first,addData(mInputs[i],dt));
-            }
-        }
-    }
-    mInputs.clear();
-
-    // For each realtime
-    for (auto realtime = mFilterBools.begin(); realtime != mFilterBools.end(); realtime++)
-    {
-        if (realtime->second)
-        {
-            if (realtime->second())
-            {
-                Data d;
-                d["type"] = "io::Realtime";
-                d["realtimeId"] = realtime->first;
-                dataToConnected(realtime->first,addData(d,dt));
-            }
-        }
-    }
-}
-
-void SystemIO::handleEvent(std::string const& event)
-{
-    mInputs.push_back(stringToData(event));
-}
-
-void SystemIO::handleEvent(sf::Event const& event)
-{
-    mInputs.push_back(eventToData(event));
-}
-
-void SystemIO::createInput(std::string const& id, std::string const& input)
-{
-    mFilters[id] = stringToData(input);
-
-    // Remove input with similar name in bools
-    auto itr = mFilterBools.find(id);
-    if (itr != mFilterBools.end())
-    {
-        mFilterBools.erase(itr);
-    }
-}
-
-void SystemIO::createInput(std::string const& id, bool& input)
-{
-    mFilterBools[id] = [&input]() -> bool
-    {
-        return input;
-    };
-
-    // Remove input with similar name in input
-    auto itr = mFilters.find(id);
-    if (itr != mFilters.end())
-    {
-        mFilters.erase(itr);
-    }
-}
-
-void SystemIO::createInput(std::string const& id, std::function<bool()> func)
-{
-    mFilterBools[id] = func;
-
-    // Remove input with similar name in input
-    auto itr = mFilters.find(id);
-    if (itr != mFilters.end())
-    {
-        mFilters.erase(itr);
-    }
-}
-
-void SystemIO::createOutput(std::string const& id, std::function<void(Data const& data)> func)
-{
-    mOutputs[id] = func;
-}
-
-void SystemIO::connect(std::string const& inputId, std::string const& outputId)
-{
-    mConnections[inputId].push_back(outputId);
-}
-
-void SystemIO::disconnect(std::string const& inputId, std::string const& outputId)
-{
-    auto itr = mConnections.find(inputId);
-    if (itr != mConnections.end())
-    {
-        for (std::size_t i = 0; i < itr->second.size(); i++)
-        {
-            if (itr->second[i] == outputId)
-            {
-                itr->second.erase(itr->second.begin() + i);
-                return;
-            }
-        }
-    }
-}
-
 SystemIO::Data SystemIO::stringToData(std::string const& event)
 {
     Data data;
@@ -478,6 +357,139 @@ std::string SystemIO::sfGetType(sf::Event::EventType type)
     return "Unknown";
 }
 
+SystemIO::SystemIO() : mWindow(nullptr)
+{
+}
+
+void SystemIO::update(sf::Time dt)
+{
+    if (mWindow != nullptr)
+    {
+        sf::Event event;
+        while (mWindow->pollEvent(event))
+        {
+            handleEvent(event);
+        }
+    }
+
+    // For each input
+    for (std::size_t i = 0; i < mInputs.size(); i++)
+    {
+        // For each filter
+        for (auto filter = mFilterDatas.begin(); filter != mFilterDatas.end(); filter++)
+        {
+            // If an input pass filter
+            if (passFilter(filter->second,mInputs[i]))
+            {
+                dataToConnected(filter->first,addData(mInputs[i],dt));
+            }
+        }
+    }
+    mInputs.clear();
+
+    // For each realtime
+    for (auto realtime = mFilterFunctions.begin(); realtime != mFilterFunctions.end(); realtime++)
+    {
+        if (realtime->second)
+        {
+            if (realtime->second())
+            {
+                Data d;
+                d["type"] = "io::Realtime";
+                d["realtimeId"] = realtime->first;
+                dataToConnected(realtime->first,addData(d,dt));
+            }
+        }
+    }
+}
+
+void SystemIO::handleEvent(std::string const& event)
+{
+    mInputs.push_back(stringToData(event));
+}
+
+void SystemIO::handleEvent(sf::Event const& event)
+{
+    mInputs.push_back(eventToData(event));
+}
+
+void SystemIO::createInput(std::string const& id, std::string const& input)
+{
+    removeInput(id);
+    mFilterDatas[id] = stringToData(input);
+}
+
+void SystemIO::createInput(std::string const& id, bool& input)
+{
+    removeInput(id);
+    mFilterFunctions[id] = [&input]() -> bool
+    {
+        return input;
+    };
+}
+
+void SystemIO::createInput(std::string const& id, std::function<bool()> func)
+{
+    removeInput(id);
+    mFilterFunctions[id] = func;
+}
+
+void SystemIO::createOutput(std::string const& id, std::function<void(Data const& data)> func)
+{
+    mOutputs[id] = func;
+}
+
+void SystemIO::removeInput(std::string const& id)
+{
+    auto itr = mFilterDatas.find(id);
+    if (itr != mFilterDatas.end())
+    {
+        mFilterDatas.erase(itr);
+    }
+
+    auto itr2 = mFilterFunctions.find(id);
+    if (itr2 != mFilterFunctions.end())
+    {
+        mFilterFunctions.erase(itr2);
+    }
+}
+
+void SystemIO::removeOutput(std::string const& id)
+{
+    auto itr = mOutputs.find(id);
+    if (itr != mOutputs.end())
+    {
+        mOutputs.erase(itr);
+    }
+}
+
+void SystemIO::connect(std::string const& inputId, std::string const& outputId)
+{
+    mConnections[inputId].push_back(outputId);
+}
+
+void SystemIO::disconnect(std::string const& inputId, std::string const& outputId)
+{
+    auto itr = mConnections.find(inputId);
+    if (itr != mConnections.end())
+    {
+        for (std::size_t i = 0; i < itr->second.size(); i++)
+        {
+            if (itr->second[i] == outputId)
+            {
+                itr->second.erase(itr->second.begin() + i);
+                return;
+            }
+        }
+    }
+}
+
+SystemIO::Data SystemIO::addData(SystemIO::Data inputData, sf::Time dt)
+{
+    inputData["dt"] = std::to_string(dt.asSeconds());
+    return inputData;
+}
+
 bool SystemIO::passFilter(Data const& filterData, Data const& inputData)
 {
     for (auto filter = filterData.begin(); filter != filterData.end(); filter++)
@@ -521,8 +533,3 @@ void SystemIO::dataToConnected(std::string const& inputId, SystemIO::Data const&
     }
 }
 
-SystemIO::Data SystemIO::addData(SystemIO::Data inputData, sf::Time dt)
-{
-    inputData["dt"] = std::to_string(dt.asSeconds());
-    return inputData;
-}
